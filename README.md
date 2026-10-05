@@ -21,7 +21,7 @@
 
 <p align="center">
   <img alt="License: MIT OR Apache-2.0" src="https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue">
-  <img alt="Files: 256 PSDs" src="https://img.shields.io/badge/photoshop-256%20PSDs-2f7bf5">
+  <img alt="Files: 258 PSDs" src="https://img.shields.io/badge/photoshop-258%20PSDs-2f7bf5">
 </p>
 
 <p align="center">
@@ -112,7 +112,7 @@ There is one top-level folder per source, i.e. per application that authored the
 
 | Folder | Source | Files |
 |---|---|---:|
-| [`photoshop/`](#photoshop-photoshop-oracle-psds) | Adobe Photoshop 2026 (27.10), driven by [`tools/photoshop-oracles/`](tools/photoshop-oracles) | 256 |
+| [`photoshop/`](#photoshop-photoshop-oracle-psds) | Adobe Photoshop 2026 (27.10), driven by [`tools/photoshop-oracles/`](tools/photoshop-oracles) | 258 |
 
 The repository also contains:
 

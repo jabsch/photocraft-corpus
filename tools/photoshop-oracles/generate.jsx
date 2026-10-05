@@ -805,6 +805,12 @@ function textCases() {
     tx("kerning-metrics", 320, 64, function () { makeText({ text: KERN, at: [8, 42], style: { size: 32, autoKern: "metricsKern" } }); });
     tx("kerning-optical", 320, 64, function () { makeText({ text: KERN, at: [8, 42], style: { size: 32, autoKern: "opticalKern" } }); });
     tx("kerning-off", 320, 64, function () { makeText({ text: KERN, at: [8, 42], style: { size: 32, autoKern: "manual" } }); });
+    // Kerning "0" on part of the line, the rest Metrics. (Photoshop 2026 stores this range's
+    // manual mode on characters 1..3: an Action Manager autoKern range is shifted one character
+    // back in the saved Txt2. Manual kerning *values* can't be set by script at all: the
+    // `kerning` key is ignored, so no case here has them.) And Optical at 24 pt (size dependent).
+    tx("kerning-off-partial", 320, 64, function () { makeText({ text: KERN, at: [8, 42], style: { size: 32 }, runs: [{ from: 2, to: 5, autoKern: "manual" }] }); });
+    tx("kerning-optical-24pt", 320, 48, function () { makeText({ text: KERN, at: [8, 32], style: { size: 24, autoKern: "opticalKern" } }); });
     tx("leading-manual-30-paragraph", 256, 192, function () { makeText({ text: PARA, at: [8, 8], box: [240, 176], style: { size: 14, autoLeading: false, leading: 30 } }); });
     tx("leading-mixed-runs-point", 256, 160, function () {
         makeText({ text: "auto leading line\rleading 40 line\rleading 12 line", at: [8, 30], style: { size: 18 }, runs: [{ from: 18, to: 33, autoLeading: false, leading: 40 }, { from: 34, to: 49, autoLeading: false, leading: 12 }] });
