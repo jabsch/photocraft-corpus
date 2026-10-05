@@ -64,28 +64,33 @@ PhotoCraft is the primary consumer. From a PhotoCraft checkout:
 
 ```sh
 cargo xtask corpus --photoshop   # this repo's photoshop/ at the pinned commit -> corpus/photoshop
-cargo xtask corpus --all         # every corpus: PngSuite, psd-tools, and this repo's sets
+cargo xtask corpus --all         # every corpus: this repo's sets plus psd-tools, ag-psd and PngSuite
 cargo xtask corpus               # list where each corpus lives and which commit is pinned
+cargo xtask test-corpus          # fetch everything, then run every corpus test
 ```
 
 - **Where the files land:** `corpus/photoshop/` in the PhotoCraft checkout. It is gitignored and
   never committed. A complete, verified copy is left alone, so running the command again is cheap.
-- **The pin:** `COMMIT` in
-  [`xtask/src/photoshop_corpus.rs`](https://github.com/storytold/photocraft/blob/main/xtask/src/photoshop_corpus.rs).
-  The manifest the download is checked against is `xtask/photoshop-corpus.sha256`.
-- **Bumping the pin:** in a PhotoCraft PR, set `COMMIT` to the new commit here, then run
+- **The pin:** `PHOTOCRAFT_CORPUS_COMMIT` in
+  [`xtask/src/corpus_pins.rs`](https://github.com/storytold/photocraft/blob/main/xtask/src/corpus_pins.rs) (every
+  corpus pin is in that one file). The manifest the download is checked against is
+  `xtask/photoshop-corpus.sha256`.
+- **Bumping the pin:** in a PhotoCraft PR, set `PHOTOCRAFT_CORPUS_COMMIT` to the new commit here, then run
   `cargo xtask corpus --photoshop --update-manifest` and commit the manifest diff. Re-run the
   tests below and raise their floors if more files pass (see [Pinning](#pinning-workflow)).
-- **Tests that use the files:**
-  - `cargo test -p photocraft-io --test corpus`: imports each PSD, flattens it, compares with
-    the merged composite, and checks the PSD export round trip. Per-feature totals and pass
-    floors are printed.
-  - `cargo test -p photocraft-engine --test photoshop_oracles`: re-renders every smart object
-    (smart-filter stack) and every type layer (text engine), then compares with the merged
-    composite.
+- **Tests that use the files** sit behind PhotoCraft's `corpus` cargo feature, so plain
+  `cargo test` doesn't build them. `cargo xtask test-corpus` runs them:
+  - `photoshop_oracle_corpus` in `crates/io/tests/corpus.rs` imports each PSD, flattens it,
+    compares the result with the merged composite, and checks the PSD export round trip. It prints
+    per-feature totals and pass floors.
+  - `crates/engine/tests/photoshop_oracles.rs` re-renders every smart object through the
+    smart-filter stack and every type layer through the text engine, then compares with the
+    merged composite.
 
-  Both skip silently when `corpus/photoshop` is missing. CI fetches it, cached by the pinned
-  commit.
+  With the feature on, a missing `corpus/photoshop` is a failure, never a silent skip.
+  PhotoCraft's CI always runs these tests in its `corpus` job. That job caches `corpus/` keyed on
+  the pins and manifests, so it downloads only when a pin changes, and it re-verifies the sha256
+  of every file before testing.
 
 ### Local layout: authoring clone, consuming copy, local mode
 
@@ -93,7 +98,7 @@ cargo xtask corpus               # list where each corpus lives and which commit
 |---|---|---|
 | **Authoring clone** | `photocraft-corpus/`, next to `photocraft/` (for example `~/dev/craft-apps/photocraft-corpus`), cloned with `git clone git@github.com:storytold/photocraft-corpus.git` | A normal git clone. Generators write here, and commits and pushes happen here. |
 | **Consuming copy** | `photocraft/corpus/photoshop/` (gitignored) | A plain directory: the pinned snapshot that `cargo xtask corpus --photoshop` downloads and verifies. It is not a git repo, a submodule or a subtree. |
-| **Local mode** | `cargo xtask corpus --photoshop --local` | Copies `photoshop/` from the authoring clone (`../photocraft-corpus`, or `PHOTOCRAFT_CORPUS_REPO=<path>`) into the consuming copy instead of downloading. It warns when the clone's HEAD differs from the pin, so you can test regenerated files against PhotoCraft before pushing and bumping the pin. |
+| **Local mode** | `cargo xtask corpus --photoshop --local`, or `cargo xtask test-corpus --local` | Copies `photoshop/` from the authoring clone (`../photocraft-corpus`, or `PHOTOCRAFT_CORPUS_REPO=<path>`) into the consuming copy instead of downloading. It warns when the clone's HEAD differs from the pin, so you can test regenerated files against PhotoCraft before pushing and bumping the pin. |
 
 Why not a submodule or subtree? A **subtree** would put every binary back into PhotoCraft's git
 history, which is exactly what this repository avoids. A **submodule** makes every contributor
@@ -158,7 +163,7 @@ change behind a pin.
    your terminal, and the [fonts](#fonts) installed. The steps are under
    [Regenerating](#regenerating). Look at the results; a contact sheet works well.
 3. **Test against PhotoCraft before pushing:** from the photocraft checkout, run
-   `cargo xtask corpus --photoshop --local` and then the corpus tests (see
+   `cargo xtask test-corpus --local`, which copies from this clone and runs the corpus tests (see
    [Local layout](#local-layout-authoring-clone-consuming-copy-local-mode)).
 4. **Refresh the manifest**, covering every folder:
    `find photoshop -name '*.psd' | LC_ALL=C sort | xargs shasum -a 256 > SHA256SUMS`
@@ -168,11 +173,11 @@ change behind a pin.
 ### Pinning workflow
 
 1. Commit and push here (step 5 above).
-2. Open a PR in PhotoCraft that bumps `COMMIT` in `xtask/src/photoshop_corpus.rs`, runs
-   `cargo xtask corpus --photoshop --update-manifest`, and commits the regenerated
+2. Open a PR in PhotoCraft that bumps `PHOTOCRAFT_CORPUS_COMMIT` in `xtask/src/corpus_pins.rs`,
+   runs `cargo xtask corpus --photoshop --update-manifest`, and commits the regenerated
    `xtask/photoshop-corpus.sha256`.
-3. In the same PR, run the corpus tests and raise their floors where results improved. Never
-   lower a floor silently.
+3. In the same PR, run `cargo xtask test-corpus` and raise the floors where results improved.
+   Never lower a floor silently.
 
 Commits are immutable and old pins must stay fetchable, so **never rewrite this repository's
 history** (no force-push, no history rewrite).

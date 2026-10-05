@@ -17,7 +17,7 @@
 |---|---|
 | Authoring clone | `photocraft-corpus/` next to `photocraft/`, a normal clone of `git@github.com:storytold/photocraft-corpus.git`. Work, commit and push here. |
 | Consuming copy | `photocraft/corpus/photoshop/`: a gitignored plain directory filled by `cargo xtask corpus --photoshop`. Never edit it. |
-| Local mode | `cargo xtask corpus --photoshop --local` copies from the authoring clone (or `PHOTOCRAFT_CORPUS_REPO=<path>`) and warns if HEAD differs from the pin. |
+| Local mode | `cargo xtask corpus --photoshop --local` (or `cargo xtask test-corpus --local`) copies from the authoring clone (or `PHOTOCRAFT_CORPUS_REPO=<path>`) and warns if HEAD differs from the pin. |
 
 It is not a submodule or a subtree: a subtree would put the binaries back into PhotoCraft's
 history, and submodules cause init and detached-HEAD friction for contributors.
@@ -48,18 +48,21 @@ history, and submodules cause init and detached-HEAD friction for contributors.
    it afterwards.
 3. **Run** `tools/photoshop-oracles/generate.sh '<regex>'` for the cases you touched (or no
    argument for everything). Every line must read `ok` or `skip`. Look at the output.
-4. **Test locally against PhotoCraft:** in the photocraft checkout run
-   `cargo xtask corpus --photoshop --local`, then
-   `cargo test -p photocraft-io --test corpus` and
-   `cargo test -p photocraft-engine --test photoshop_oracles`.
+4. **Test locally against PhotoCraft:** in the photocraft checkout, run
+   `cargo xtask test-corpus --local -- --nocapture`. It copies `photoshop/` from this clone and
+   runs every corpus test (cargo feature `corpus`) with per-file tables.
 5. **Always update `SHA256SUMS`** in the same commit:
    `find photoshop -name '*.psd' | LC_ALL=C sort | xargs shasum -a 256 > SHA256SUMS`
    (add any new source folder to the `find`).
 6. **Make one commit per batch**, with a clear message (what changed, which Photoshop version),
    then push to `main`.
-7. **Bump the pin in PhotoCraft through a PR:** set `COMMIT` in `xtask/src/photoshop_corpus.rs`,
-   run `cargo xtask corpus --photoshop --update-manifest`, commit the manifest, run the corpus
-   tests and raise their floors if more files pass.
+7. **Bump the pin in PhotoCraft through a PR:**
+   - set `PHOTOCRAFT_CORPUS_COMMIT` in `xtask/src/corpus_pins.rs`;
+   - run `cargo xtask corpus --photoshop --update-manifest` and commit the manifest;
+   - run `cargo xtask test-corpus` and raise the floors if more files pass.
+
+   PhotoCraft's CI `corpus` job then fetches the new pin, since its cache key changes with the
+   pin.
 
 ## 5. Rules
 
